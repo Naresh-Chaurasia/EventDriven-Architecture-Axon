@@ -1,0 +1,119 @@
+server.port=8082
+
+eureka.client.service-url.defaultZone = http://localhost:8010/eureka
+
+# Logging Configuration
+logging.level.root=INFO
+logging.level.com.appsdeveloperblog.ws.api.ApiGateway=DEBUG
+logging.level.org.springframework.cloud.gateway=DEBUG
+logging.level.reactor.netty.http.client=DEBUG
+logging.level.org.springframework.security=DEBUG
+logging.level.org.springframework.web=DEBUG
+
+# These 2 entries can co-exist. Spring Cloud API Gateway automatically map and routing HTTP request to a destination micro service
+#spring.cloud.gateway.discovery.locator.enabled=true
+#spring.cloud.gateway.discovery.locator.lower-case-service-id=true
+
+#spring.cloud.gateway.routes[0].id=user-status-check
+#spring.cloud.gateway.routes[0].uri = lb://users-ws
+#spring.cloud.gateway.routes[0].predicates[0]=Path=/users/status/check
+#spring.cloud.gateway.routes[0].predicates[1]=Method=GET
+#spring.cloud.gateway.routes[0].filters[0]=RemoveRequestHeader=Cookie
+
+
+# OR
+
+#spring.cloud.gateway.routes[0].id=users-status-check
+#spring.cloud.gateway.routes[0].uri = lb://users-ws
+#spring.cloud.gateway.routes[0].predicates[0]=Path=/users-ws/users/status/check
+#spring.cloud.gateway.routes[0].predicates[1]=Method=GET
+## Public status check should not require Authorization header
+#spring.cloud.gateway.routes[0].filters[0]=RemoveRequestHeader=Cookie
+#spring.cloud.gateway.routes[0].filters[1]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+
+# ====================================================
+# Route 1: User Status Check Endpoint
+# ====================================================
+# Unique identifier for the user status check route
+spring.cloud.gateway.routes[0].id=users-status-check
+# Target service with client-side load balancing
+spring.cloud.gateway.routes[0].uri=lb://users-ws
+# Match requests to /users-ws/users/status/check
+spring.cloud.gateway.routes[0].predicates[0]=Path=/users-ws/users/status/check
+# Only allow HTTP GET method
+spring.cloud.gateway.routes[0].predicates[1]=Method=GET
+# Public route: no Authorization header required
+# (removed) spring.cloud.gateway.routes[0].predicates[2]=Header=Authorization, Bearer (.*)
+# Security: Remove Cookie header before forwarding
+spring.cloud.gateway.routes[0].filters[0]=RemoveRequestHeader=Cookie
+# Rewrite path to remove /users-ws prefix
+spring.cloud.gateway.routes[0].filters[1]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+# No JWT validation for public status check
+
+# ====================================================
+# Route 2: User Creation Endpoint
+# ====================================================
+# Route ID for user creation
+spring.cloud.gateway.routes[1].id=users-ws
+# Target service with load balancing
+spring.cloud.gateway.routes[1].uri=lb://users-ws
+# Match requests to /users-ws/users
+spring.cloud.gateway.routes[1].predicates[0]=Path=/users-ws/users
+# Only allow HTTP POST method
+spring.cloud.gateway.routes[1].predicates[1]=Method=POST
+# Security: Remove Cookie header
+spring.cloud.gateway.routes[1].filters[0]=RemoveRequestHeader=Cookie
+# Rewrite path to remove /users-ws prefix
+spring.cloud.gateway.routes[1].filters[1]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+
+# ====================================================
+# Route 3: User Login Endpoint
+# ====================================================
+# Route ID for user login
+spring.cloud.gateway.routes[2].id=users-ws-login
+# Target service with load balancing
+spring.cloud.gateway.routes[2].uri=lb://users-ws
+# Match requests to /users-ws/users/login
+spring.cloud.gateway.routes[2].predicates[0]=Path=/users-ws/users/login
+# Only allow HTTP POST method
+spring.cloud.gateway.routes[2].predicates[1]=Method=POST
+# Security: Remove Cookie header
+spring.cloud.gateway.routes[2].filters[0]=RemoveRequestHeader=Cookie
+# Rewrite path to remove /users-ws prefix
+spring.cloud.gateway.routes[2].filters[1]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+
+# ====================================================
+# Route 4: User CRUD Operations (GET, PUT, DELETE)
+# ====================================================
+# Route ID for user CRUD operations
+spring.cloud.gateway.routes[3].id=users-ws-get-update-delete
+# Target service with load balancing
+spring.cloud.gateway.routes[3].uri=lb://users-ws
+# Match all requests under /users-ws/users/
+spring.cloud.gateway.routes[3].predicates[0]=Path=/users-ws/users/**
+# Allow GET, PUT, and DELETE methods
+spring.cloud.gateway.routes[3].predicates[1]=Method=GET,PUT,DELETE
+spring.cloud.gateway.routes[3].predicates[2]=Header=Authorization, Bearer (.*)
+spring.cloud.gateway.routes[3].filters[0]=RemoveRequestHeader=Cookie
+spring.cloud.gateway.routes[3].filters[1]=AuthorizationHeaderFilter
+spring.cloud.gateway.routes[3].filters[2]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+
+
+# Enabling Actuator endpoints
+spring.cloud.gateway.routes[4].id = users-actuator
+spring.cloud.gateway.routes[4].uri = lb://users-ws
+spring.cloud.gateway.routes[4].predicates[0]=Path=/users-ws/actuator/**
+spring.cloud.gateway.routes[4].predicates[1]=Method=GET
+spring.cloud.gateway.routes[4].filters[0]=RemoveRequestHeader=Cookie
+spring.cloud.gateway.routes[4].filters[1]=RewritePath=/users-ws/(?<segment>.*), /$\{segment}
+
+#spring.cloud.gateway.discovery.locator.enabled=true
+#spring.cloud.gateway.discovery.locator.lower-case-service-id=true
+
+token.secret=FOyxTIggQE+IZk1kV4rSzu6xK7njOsTILfX/x908ZFuL/XzDsa5zqcPH81T7ok74ygo5+e/7EHo1UB3hGTHSRg==
+
+# Enabling actuator endpoints
+management.endpoints.gateway.enabled=true
+# management.endpoints.web.exposure.include=gateway,beans,health,routes,httptrace
+management.endpoints.web.exposure.include=*
+management.endpoint.health.show-details=always

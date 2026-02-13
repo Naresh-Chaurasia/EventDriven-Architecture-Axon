@@ -1,0 +1,49 @@
+= Events Axon
+:toc: right
+:toclevels: 5
+:sectnums: 5
+:sectnumlevel: 5
+
+
+
+[cols="1,2"]
+|===
+| One | Two
+
+|Discovery
+a|
+- 8761
+- http://localhost:8761/
+
+|Gateway
+a|
+- 8010
+
+|User
+|8020
+
+| User via Gateway:8010
+a|
+- http://localhost:8010/users/status/check (No Security at User MS)
+- http://localhost:8010/users
+
+
+| User Direct:8020
+a|
+- http://localhost:8020/users/status/check
+- http://localhost:8020/users
+- http://localhost:8020/h2-console/login.jsp
+- http://localhost:8020/h2-console/login.do
+- http://localhost:8020/swagger-ui/index.html
+
+|===
+
+----
+{
+"firstName": "John",
+"lastName": "Doe",
+"email": "john.doe@example.com",
+"password": "SecurePassword123"
+}
+----
+
