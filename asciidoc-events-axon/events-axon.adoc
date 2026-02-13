@@ -24,8 +24,17 @@ a|
 
 | User via Gateway:8010
 a|
-- http://localhost:8010/users/status/check (No Security at User MS)
+- **User**
+- http://localhost:8010/users/status/check (No Security at User MS. It just needs JWT token for access)
 - http://localhost:8010/users
+- **User Actuator via Gateway**
+- http://localhost:8010/users-ri-3x/actuator/mappings
+- http://localhost:8010/users-ri-3x/actuator/health
+
+- **Gateway Actuator**
+- http://localhost:8010/actuator/gateway/routes
+- http://localhost:8010/actuator/health  
+- http://localhost:8010/actuator/info
 
 
 | User Direct:8020

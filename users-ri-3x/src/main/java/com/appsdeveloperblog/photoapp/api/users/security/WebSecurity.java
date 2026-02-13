@@ -60,6 +60,7 @@ public class WebSecurity {
 				.requestMatchers(new AntPathRequestMatcher("/v3/api-docs/**")).permitAll()
 				.requestMatchers(new AntPathRequestMatcher("/swagger-ui/**")).permitAll()
 				.requestMatchers(new AntPathRequestMatcher("/swagger-ui.html")).permitAll()
+				.requestMatchers(new AntPathRequestMatcher("/actuator/**")).permitAll()
 				.anyRequest().authenticated()
 				.and()
 				.addFilter(authenticationFilter)
