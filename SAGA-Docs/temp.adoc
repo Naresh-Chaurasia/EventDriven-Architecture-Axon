@@ -1,1 +1,3 @@
-curl -X GET "http://localhost:8020/api/jwt/validate?token=eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huIiwidXNlcklkIjoiMTIzIiwiaWF0IjoxNzcxMTQ1NzE2LCJleHAiOjE3NzExNDkzMTZ9.yBnWmuazPlSbH4zYV53alQhSmfZfYYUp6JU_3zJAiL3FucrtCmv0Qdlt83gmG-lD"
+curl --location 'http://localhost:7010/api/authorization/test' \
+--header 'Content-Type: application/json' \
+--data '{"orderId": "order-123", "amount": "100.00", "currency": "USD", "userId": "user-123", "merchantId": "merchant-456", "paymentMethod": "CREDIT_CARD"}'

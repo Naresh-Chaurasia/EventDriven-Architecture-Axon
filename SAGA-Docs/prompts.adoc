@@ -1,0 +1,33 @@
+= Prompts
+:toc: right
+:toclevels: 5
+:sectnums:5
+:sectnumlevel: 5
+
+
+* Prompt 1: 
+
+.Resources
+[%collapsible]
+====
+Explain Briefly.
+
+####
+
+when I run following command
+
+curl --location 'http://localhost:8081/api/authorization/test' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-123",
+    "amount": "100.00",
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'
+
+AuthorizationController created PaymentInitiatedEvent and puts in bus. How can I view the bus content and name etc.
+
+My Axon is running on http://localhost:8024/#overview
+====

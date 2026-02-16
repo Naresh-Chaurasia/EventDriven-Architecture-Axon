@@ -54,6 +54,22 @@
 
 Authorization engine that evaluates payment transactions against business rules and risk criteria. Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
 
+* http://localhost:7010/h2-console/login.do
+
+
+----
+curl --location 'http://localhost:8081/api/authorization/test' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-123",
+    "amount": "100.00",
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
 * *Location*:`/Users/nareshchaurasia/nc/Java-Architect/EventDriven-Architecture-Axon/authorization-service-ri-lti`
 
 * *Purpose*:Payment authorization and risk assessment
@@ -147,7 +163,7 @@ axon.serialization.xstream.allowed-types=com.payment.platform.**,com.appsdevelop
 ##############################################
 
 
-== Axon Server
+== Axon Server (8024)
 
 * Download: https://download.axoniq.io/axonserver/AxonServer-4.6.7.zip
 
@@ -191,17 +207,34 @@ curl -X GET "http://localhost:8024/v1/events" \
 
 Command(POSTMAN) → PaymentInitiatedEvent → Authorization Logic → PaymentAuthorizedEvent
 
-id:1
-data:{"messageIdentifier":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.PaymentInitiatedEvent","data":"<com.payment.platform.core.events.*PaymentInitiatedEvent*>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.557579</timestamp>\n  <amount>100.00</amount>\n  <currency>USD</currency>\n  <userId>user-123</userId>\n  <merchantId>merchant-456</merchantId>\n  <paymentMethod>CREDIT_CARD</paymentMethod>\n</com.payment.platform.core.events.PaymentInitiatedEvent>","revision":""},"timestamp":1771053961558,"metaData":{}}
+nareshchaurasia@Nareshs-MacBook-Pro nc % curl -X GET "http://localhost:8024/v1/events" \ -H "Content-Type: application/json"
 
-id:2
-data:{"messageIdentifier":"2d74ea43-db99-4602-9287-f6ddca0d5455","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.PaymentAuthorizedEvent","data":"<com.payment.platform.core.events.*PaymentAuthorizedEvent*>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.855482</timestamp>\n  <authorizationCode>AUTH_A2E13DBB</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771053961855,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
+* id:1
+
+data:{"messageIdentifier":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentInitiatedEvent*","data":"<com.payment.platform.core.events.PaymentInitiatedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.557579</timestamp>\n  <amount>100.00</amount>\n  <currency>USD</currency>\n  <userId>user-123</userId>\n  <merchantId>merchant-456</merchantId>\n  <paymentMethod>CREDIT_CARD</paymentMethod>\n</com.payment.platform.core.events.PaymentInitiatedEvent>","revision":""},"timestamp":1771053961558,"metaData":{}}
+
+* id:2
+
+data:{"messageIdentifier":"2d74ea43-db99-4602-9287-f6ddca0d5455","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentAuthorizedEvent*","data":"<com.payment.platform.core.events.PaymentAuthorizedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.855482</timestamp>\n  <authorizationCode>AUTH_A2E13DBB</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771053961855,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
+
+* id:3
+
+data:{"messageIdentifier":"478a67e7-007b-4c9d-99e3-485340587765","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentSettledEvent*","data":"<com.payment.platform.core.events.PaymentSettledEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T15:43:21.33997</timestamp>\n  <settlementId>SETTLE_1771064001339_4801</settlementId>\n  <settlementDate>2026-02-14T15:43:21.339959</settlementDate>\n</com.payment.platform.core.events.PaymentSettledEvent>","revision":""},"timestamp":1771064001340,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2d74ea43-db99-4602-9287-f6ddca0d5455"}}
+
+* id:4
+
+data:{"messageIdentifier":"b6f11469-95eb-447a-bd66-245ea2f4a318","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentAuthorizedEvent*","data":"<com.payment.platform.core.events.PaymentAuthorizedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-15T08:42:18.657874</timestamp>\n  <authorizationCode>AUTH_9A06480A</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771125138657,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
 
 ##############################################
 
-== settlment-service-ri
+== settlment-service-ri (8082)
 
-* Start Settlement Service
+TODO: Change Port to 7020 (port does not make a difference)
+
+ * Receives PaymentAuthorizedEvent via Axon Framework
+ * Delegates to SettlementProcessor for payment processing
+ * Publishes PaymentSettledEvent or handles settlement failures
+ * Handles exceptions and implements retry logic
 
 
 ----
