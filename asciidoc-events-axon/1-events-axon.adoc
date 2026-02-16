@@ -74,10 +74,11 @@ cd /Users/nareshchaurasia/nc/Java-Architect/EventDriven-Architecture-Axon/eureka
 
 == jwt-ri-3x (8030)
 
+* @PropertySource("classpath:jwt-application.properties")
+
 ---
 
 ##############################################
-
 
 
 ---

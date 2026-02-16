@@ -33,7 +33,7 @@ public class MyPreFilter implements GlobalFilter, Ordered {
 		headerNames.forEach((headerName)-> {
 			
 			String headerValue = headers.getFirst(headerName);
-			logger.info(headerName + " " + headerValue);
+			//logger.info(headerName + " " + headerValue);
 			
 		});
 		

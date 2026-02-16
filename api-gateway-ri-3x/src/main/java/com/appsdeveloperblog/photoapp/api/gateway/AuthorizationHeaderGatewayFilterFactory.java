@@ -1,7 +1,5 @@
 package com.appsdeveloperblog.photoapp.api.gateway;
 
-import java.util.Base64;
-
 import javax.crypto.SecretKey;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -18,10 +16,14 @@ import org.springframework.web.server.ServerWebExchange;
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Mono;
 
 @Component
 public class AuthorizationHeaderGatewayFilterFactory extends AbstractGatewayFilterFactory<AuthorizationHeaderGatewayFilterFactory.Config> {
+
+    private static final Logger logger = LoggerFactory.getLogger(AuthorizationHeaderGatewayFilterFactory.class);
 
 	@Autowired
 	Environment env;
@@ -37,26 +39,33 @@ public class AuthorizationHeaderGatewayFilterFactory extends AbstractGatewayFilt
 
 	@Override
 	public GatewayFilter apply(Config config) {
+		logger.info("Applying AuthorizationHeaderGatewayFilter");
 		return (exchange, chain) -> {
 
 			ServerHttpRequest request = exchange.getRequest();
+			logger.debug("Processing request to path: {}", request.getURI().getPath());
 
 			if (!request.getHeaders().containsKey(HttpHeaders.AUTHORIZATION)) {
+				logger.warn("No authorization header found in request");
 				return onError(exchange, "No authorization header", HttpStatus.UNAUTHORIZED);
 			}
 
 			String authorizationHeader = request.getHeaders().get(HttpHeaders.AUTHORIZATION).get(0);
+			logger.debug("Authorization header: {}", authorizationHeader);
 			String jwt = authorizationHeader.replace("Bearer", "").trim();
 
 			if (!isJwtValid(jwt)) {
+				logger.error("JWT token validation failed");
 				return onError(exchange, "JWT token is not valid", HttpStatus.UNAUTHORIZED);
 			}
 
+			logger.info("JWT token validated successfully");
 			return chain.filter(exchange);
 		};
 	}
 
 	private Mono<Void> onError(ServerWebExchange exchange, String err, HttpStatus httpStatus) {
+		logger.error("Gateway filter error: {} - {}", err, httpStatus);
 		ServerHttpResponse response = exchange.getResponse();
 		response.setStatusCode(httpStatus);
 
@@ -64,27 +73,30 @@ public class AuthorizationHeaderGatewayFilterFactory extends AbstractGatewayFilt
 	}
 
 	private boolean isJwtValid(String jwt) {
+		logger.debug("Validating JWT token");
 		boolean returnValue = true;
 
 		String subject = null;
 
 		try {
-			byte[] secretKeyBytes = Base64.getEncoder().encode(env.getProperty("token.secret").getBytes());
-			SecretKey key = Keys.hmacShaKeyFor(secretKeyBytes);
+			// Use the same key format as JWT service - no Base64 encoding
+			SecretKey key = Keys.hmacShaKeyFor(env.getProperty("token.secret").getBytes());
 			JwtParser parser = Jwts.parser()
 					.verifyWith(key)
 					.build();
 			subject = parser.parseSignedClaims(jwt).getPayload().getSubject();
+			logger.debug("JWT token subject extracted: {}", subject);
 		} catch (Exception ex) {
+			logger.error("JWT token parsing failed: {}", ex.getMessage());
 			returnValue = false;
 		}
 
 		if (subject == null || subject.isEmpty()) {
+			logger.warn("JWT token subject is null or empty");
 			returnValue = false;
 		}
 
-		System.out.println("Subject: " + subject);
-
+		logger.info("JWT token validation result: {}", returnValue);
 		return returnValue;
 	}
 
