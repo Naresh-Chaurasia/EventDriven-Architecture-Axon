@@ -1,0 +1,1 @@
+curl -X GET "http://localhost:8020/api/jwt/validate?token=eyJhbGciOiJIUzM4NCJ9.eyJzdWIiOiJqb2huIiwidXNlcklkIjoiMTIzIiwiaWF0IjoxNzcxMTQ1NzE2LCJleHAiOjE3NzExNDkzMTZ9.yBnWmuazPlSbH4zYV53alQhSmfZfYYUp6JU_3zJAiL3FucrtCmv0Qdlt83gmG-lD"
