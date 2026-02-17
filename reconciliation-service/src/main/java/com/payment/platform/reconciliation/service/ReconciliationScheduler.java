@@ -27,7 +27,7 @@ public class ReconciliationScheduler {
     @Autowired
     private ReconciliationService reconciliationService;
     
-    @Value("${reconciliation.schedule.cron:0 0 2 * * ?}")
+    @Value("${reconciliation.schedule.cron}")
     private String cronExpression;
     
     @Value("${reconciliation.retry.max-attempts:3}")
@@ -39,7 +39,7 @@ public class ReconciliationScheduler {
     /**
      * Daily reconciliation job scheduled to run at 2 AM by default.
      */
-    @Scheduled(cron = "${reconciliation.schedule.cron:0 0 2 * * ?}")
+    @Scheduled(cron = "${reconciliation.schedule.cron}")
     public void performDailyReconciliation() {
         log.info("Starting scheduled daily reconciliation job at {}", LocalDateTime.now());
         

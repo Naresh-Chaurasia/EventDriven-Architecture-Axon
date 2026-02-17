@@ -1,4 +1,4 @@
-= Payment Processing Platform Implementation Summary
+= 1- Payment Platform
 :toc: right
 :toclevels: 5
 :sectnums: 5
@@ -30,13 +30,13 @@
 * *PaymentEvent.java*: Base abstract class for all payment-related events in the CQRS event-driven architecture.
   Base abstract event class
 
-* *PaymentInitiatedEvent.java* : Event fired when a new payment transaction is initiated in the payment processing platform. Used by: AuthorizationService
+* *PaymentInitiatedEvent.java* : Event fired when a new payment transaction is initiated in the payment processing platform* Used by: AuthorizationService
 
-* *PaymentAuthorizedEvent.java*: Event fired when a payment transaction has been successfully authorized by the AuthorizationService. Used by: SettlementService
+* *PaymentAuthorizedEvent.java*: Event fired when a payment transaction has been successfully authorized by the AuthorizationService* Used by: SettlementService
 
-* *PaymentRejectedEvent.java*: Event fired when a payment transaction has been rejected by the AuthorizationService. Used by: OrderService (compensation)
+* *PaymentRejectedEvent.java*: Event fired when a payment transaction has been rejected by the AuthorizationService* Used by: OrderService (compensation)
 
-* *PaymentSettledEvent.java*: Event fired when a payment transaction has been successfully settled with the payment processor. Used by: OrderService (completion)
+* *PaymentSettledEvent.java*: Event fired when a payment transaction has been successfully settled with the payment processor* Used by: OrderService (completion)
 
 * *Payment.java*Domain model representing full payment lifecycle
   *PaymentStatus enum*:
@@ -52,7 +52,7 @@
 
 == ✔️ authorization-service-ri (7010)
 
-Authorization engine that evaluates payment transactions against business rules and risk criteria. Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+Authorization engine that evaluates payment transactions against business rules and risk criteria* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
 
 * http://localhost:7010/h2-console/login.do
 
@@ -90,13 +90,13 @@ curl --location 'http://localhost:8081/api/authorization/test' \
 
 * *AuthorizationRulesEngine.java*
 
-Authorization engine that evaluates payment transactions against business rules and risk criteria. Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+Authorization engine that evaluates payment transactions against business rules and risk criteria* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
 
 * *AuthorizationResult.java*: Result object containing the outcome of payment authorization evaluation.
 
 * *AuthorizationEventHandler.java*: Axon event handler
 
-* #Receives: PaymentInitiatedEvent. How. Put in the event bus#.
+* #Receives: PaymentInitiatedEvent* How* Put in the event bus#.
 * Publishes: PaymentAuthorizedEvent or PaymentRejectedEvent
 * Integration: Axon EventBus
 
@@ -106,7 +106,7 @@ Authorization engine that evaluates payment transactions against business rules 
   * Endpoint: POST `/api/authorization/test`
   * Purpose: Test authorization workflow
 
-* *XStreamConfig.java*: XStream configuration for secure XML serialization in the authorization service. Configures allowed package patterns for payment platform events and models to prevent security vulnerabilities during event serialization/deserialization with Axon Framework.
+* *XStreamConfig.java*: XStream configuration for secure XML serialization in the authorization service* Configures allowed package patterns for payment platform events and models to prevent security vulnerabilities during event serialization/deserialization with Axon Framework.
 ====
 
 ##############################################
@@ -138,13 +138,13 @@ axon.serialization.xstream.allowed-types=com.payment.platform.**,com.appsdevelop
 
 *Payment Authorization Workflow*
 
-1. REST API → AuthorizationController.test()
-2. EventBus.publish(PaymentInitiatedEvent)
-3. AuthorizationEventHandler.on(PaymentInitiatedEvent)
-4. AuthorizationRulesEngine.evaluate(event)
-5. Business Rules → AuthorizationResult
-6. EventBus.publish(PaymentAuthorizedEvent OR PaymentRejectedEvent)
-7. Downstream services process results
+1* REST API → AuthorizationController.test()
+2* EventBus.publish(PaymentInitiatedEvent)
+3* AuthorizationEventHandler.on(PaymentInitiatedEvent)
+4* AuthorizationRulesEngine.evaluate(event)
+5* Business Rules → AuthorizationResult
+6* EventBus.publish(PaymentAuthorizedEvent OR PaymentRejectedEvent)
+7* Downstream services process results
 
 *Integration Points*
 
@@ -182,10 +182,10 @@ curl -X POST http://localhost:8081/api/authorization/test \
   -d '{"orderId":"order-123","amount":"100.00","currency":"USD","userId":"user-123","merchantId":"merchant-456","paymentMethod":"CREDIT_CARD"}'
 
 
-2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 1. Processing payment authorization for paymentId: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
-2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.s.AuthorizationRulesEngine       : 2. Evaluating authorization rules for payment: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 1* Processing payment authorization for paymentId: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.s.AuthorizationRulesEngine       : 2* Evaluating authorization rules for payment: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
 2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.s.AuthorizationRulesEngine       : 3.Authorization result for payment ec4848c3-75bc-4c77-92f7-4c7f057f5f74: approved=true, riskScore=0
-2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 4. Payment authorized: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 4* Payment authorized: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
 
 ----
 
@@ -227,7 +227,7 @@ data:{"messageIdentifier":"b6f11469-95eb-447a-bd66-245ea2f4a318","aggregateIdent
 
 ##############################################
 
-== settlment-service-ri (8082)
+== settlment-service-ri (7020)
 
 TODO: Change Port to 7020 (port does not make a difference)
 
@@ -238,14 +238,14 @@ TODO: Change Port to 7020 (port does not make a difference)
 
 
 ----
-ler   : 1. Processing payment settlement for authorized paymentId: 677495be-26a8-430a-a676-089ff0adb461
+ler   : 1* Processing payment settlement for authorized paymentId: 677495be-26a8-430a-a676-089ff0adb461
 2026-02-14T15:43:21.338+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : Event received - PaymentId: 677495be-26a8-430a-a676-089ff0adb461, OrderId: order-123, AuthCode: AUTH_A2E13DBB, RiskScore: 0, Amount: 100.00
-2026-02-14T15:43:21.338+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 2. Delegating to SettlementProcessor for payment: 677495be-26a8-430a-a676-089ff0adb461
-2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 2. Processing settlement for authorized payment: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.338+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 2* Delegating to SettlementProcessor for payment: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 2* Processing settlement for authorized payment: 677495be-26a8-430a-a676-089ff0adb461
 2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : Payment details - Amount: 100.00, Auth Code: AUTH_A2E13DBB, Risk Score: 0
 2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : Attempt 1 to settle payment: 677495be-26a8-430a-a676-089ff0adb461
-2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 3. Payment settled successfully: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
-2026-02-14T15:43:21.341+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 4. Payment settlement completed: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 3* Payment settled successfully: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
+2026-02-14T15:43:21.341+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 4* Payment settlement completed: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
 ----
 
 ##############################################
@@ -266,7 +266,7 @@ data:{"messageIdentifier":"478a67e7-007b-4c9d-99e3-485340587765","aggregateIdent
 
 ---
 
-== Notification Service Role
+== Notification Service Role (7030)
 
 *What It Does:*
 - Receives events from Axon Server (PaymentSettledEvent, PaymentRejectedEvent, etc.)
@@ -310,6 +310,136 @@ PaymentSettledEvent → Notification Service (TERMINAL)
 
 ---
 
+
+== Reconciliation (7050)
+
+*1* Payment Initiation*
+
+*What happens:* Customer says "I want to pay"
+
+*Simple example:*
+
+* You click "Pay Now" on Amazon
+* You enter credit card details
+* You click "Confirm Payment"
+
+*What the system does:*
+
+* Creates a payment request: "Customer wants to pay $50"
+* Gives it an ID: `PAY-12345`
+* Says: "Got it! Starting payment process"
+
+##############################################
+
+---
+
+*2* Payment Authorization*
+
+*What happens:* Bank says "Yes, this payment is okay"
+
+*Simple example:*
+
+* Amazon sends your card details to Visa
+* Visa checks: Does customer have money? Is card valid?
+* Visa replies: "Yes, approve this $50 charge"
+
+*What the system does:*
+
+* Creates authorization code: `AUTH-789`
+* Records: "Payment approved, but money not moved yet"
+* Reserves the money in your account
+
+##############################################
+
+---
+
+*3* Payment Settlement*
+
+*What happens:* Money actually moves from customer to merchant
+
+*Simple example:*
+
+* At midnight, Visa tells Amazon's bank: "Move that $50 now"
+* Amazon's bank receives the money
+* Your card is actually charged $50
+
+*What the system does:*
+
+* Creates settlement record: "Money moved successfully"
+* Updates: "Payment is now complete"
+* Records settlement ID: `SETTLE-ABC`
+
+##############################################
+
+---
+
+*4* Payment Notification*
+
+*What happens:* Everyone gets told about the payment
+
+*Simple example:*
+
+* Amazon emails you: "Your payment of $50 was successful"
+* Amazon's warehouse gets alert: "Ship the order"
+* Amazon's accounting sees: "Record this revenue"
+
+*What the system does:*
+
+* Sends email to customer
+* Updates order status to "Paid"
+* Notifies warehouse to ship product
+* Records everything in accounting system
+
+##############################################
+
+---
+
+*5* Payment Reconciliation*
+
+*What happens:* Accountant checks that everything matches perfectly
+
+*Simple example:*
+
+*Next morning, the accountant checks:*
+
+*What should have happened:*
+
+* Customer paid: $50
+* Amazon should receive: $48 (after $2 fees)
+* Bank should show: $50 moved
+* Fees should be: $2
+
+*What actually happened:*
+
+* Customer paid: $50 ✅
+* Amazon received: $47.50 ❌ (50 cents missing!)
+* Bank shows: $50 ✅
+* Fees charged: $2.50 ❌ (50 cents extra!)
+
+*What reconciliation does:*
+
+* *Finds the problem:* "We were overcharged 50 cents in fees!"
+* *Flags it:* "Investigate this fee difference"
+* *Fixes it:* "Get the 50 cents back from bank"
+* *Prevents future issues:* "Check fee calculations carefully"
+
+*Why All 5 Steps Matter*
+
+*Without any step:*
+
+* *No Initiation:* Customer can't start payment
+* *No Authorization:* Fraudulent payments happen
+* *No Settlement:* Money never actually moves
+* *No Notification:* Nobody knows what happened
+* *No Reconciliation:* Money disappears without anyone noticing
+
+*With all steps:*
+
+* Customer pays → System knows about it
+* Bank approves → No fraud, money is available
+* Money moves → Merchant gets paid
+* Everyone told → Order ships, customer happy
+* Accountant checks → No money lost, no errors
 
 ##############################################
 

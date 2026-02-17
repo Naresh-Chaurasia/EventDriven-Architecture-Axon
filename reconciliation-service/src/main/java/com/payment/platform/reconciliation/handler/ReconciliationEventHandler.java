@@ -49,7 +49,7 @@ public class ReconciliationEventHandler {
         log.info("Payment ledger entry created for initiated payment: {}", event.getPaymentId());
     }
     
-    @EventHandler
+    //@EventHandler
     public void on(PaymentAuthorizedEvent event) {
         log.info("Processing PaymentAuthorizedEvent for ledger: paymentId={}, authCode={}", 
                 event.getPaymentId(), event.getAuthorizationCode());
@@ -70,7 +70,7 @@ public class ReconciliationEventHandler {
         }
     }
     
-    @EventHandler
+    //@EventHandler
     public void on(PaymentRejectedEvent event) {
         log.info("Processing PaymentRejectedEvent for ledger: paymentId={}, reason={}", 
                 event.getPaymentId(), event.getRejectionReason());
@@ -89,7 +89,7 @@ public class ReconciliationEventHandler {
         }
     }
     
-    @EventHandler
+    //@EventHandler
     public void on(PaymentSettledEvent event) {
         log.info("Processing PaymentSettledEvent for ledger: paymentId={}, settlementId={}", 
                 event.getPaymentId(), event.getSettlementId());
