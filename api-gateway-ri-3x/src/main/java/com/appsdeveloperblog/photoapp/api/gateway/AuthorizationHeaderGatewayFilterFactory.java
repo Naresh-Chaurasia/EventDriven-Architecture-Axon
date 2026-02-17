@@ -8,10 +8,14 @@ import org.springframework.cloud.gateway.filter.factory.AbstractGatewayFilterFac
 import org.springframework.core.env.Environment;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
 import org.springframework.http.server.reactive.ServerHttpRequest;
 import org.springframework.http.server.reactive.ServerHttpResponse;
 import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.springframework.core.io.buffer.DataBuffer;
 
 import io.jsonwebtoken.JwtParser;
 import io.jsonwebtoken.Jwts;
@@ -68,8 +72,25 @@ public class AuthorizationHeaderGatewayFilterFactory extends AbstractGatewayFilt
 		logger.error("Gateway filter error: {} - {}", err, httpStatus);
 		ServerHttpResponse response = exchange.getResponse();
 		response.setStatusCode(httpStatus);
-
-		return response.setComplete();
+		response.getHeaders().add(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_VALUE);
+		
+		try {
+			String errorResponse = String.format(
+				"{\"timestamp\":\"%d\",\"status\":%d,\"error\":\"%s\",\"message\":\"%s\",\"path\":\"%s\"}",
+				System.currentTimeMillis(),
+				httpStatus.value(),
+				httpStatus.getReasonPhrase(),
+				err,
+				exchange.getRequest().getURI().getPath()
+			);
+			
+			byte[] bytes = errorResponse.getBytes();
+			DataBuffer buffer = response.bufferFactory().wrap(bytes);
+			return response.writeWith(Mono.just(buffer));
+		} catch (Exception e) {
+			logger.error("Error writing error response: {}", e.getMessage());
+			return response.setComplete();
+		}
 	}
 
 	private boolean isJwtValid(String jwt) {

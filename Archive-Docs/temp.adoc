@@ -1,3 +1,10 @@
-curl --location 'http://localhost:7010/api/authorization/test' \
+curl --location 'http://localhost:8010/api/authorization/test' \
 --header 'Content-Type: application/json' \
---data '{"orderId": "order-123", "amount": "100.00", "currency": "USD", "userId": "user-123", "merchantId": "merchant-456", "paymentMethod": "CREDIT_CARD"}'
+--data '{
+    "orderId": "order-123",
+    "amount": "100.00",
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'

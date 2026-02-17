@@ -3,6 +3,8 @@ package com.payment.platform.authorization.controller;
 import com.payment.platform.core.events.PaymentInitiatedEvent;
 import org.axonframework.eventhandling.EventBus;
 import org.axonframework.eventhandling.GenericEventMessage;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
@@ -12,11 +14,18 @@ import java.util.UUID;
 @RequestMapping("/api/authorization")
 public class AuthorizationController {
     
+    private static final Logger log = LoggerFactory.getLogger(AuthorizationController.class);
+    
     @Autowired
     private EventBus eventBus;
     
     @PostMapping("/test")
     public String testAuthorization(@RequestBody TestPaymentRequest request) {
+        log.info("Received payment authorization test request for orderId: {}", request.getOrderId());
+        log.debug("Request details - amount: {}, currency: {}, userId: {}, merchantId: {}, paymentMethod: {}", 
+                 request.getAmount(), request.getCurrency(), request.getUserId(), 
+                 request.getMerchantId(), request.getPaymentMethod());
+        
         // Create a test payment initiation event
         PaymentInitiatedEvent event = new PaymentInitiatedEvent(
             UUID.randomUUID().toString(),
@@ -28,8 +37,12 @@ public class AuthorizationController {
             request.getPaymentMethod()
         );
         
+        log.info("Created PaymentInitiatedEvent with paymentId: {}", event.getPaymentId());
+        
         // Publish event to Axon (this will trigger AuthorizationEventHandler)
         eventBus.publish(GenericEventMessage.asEventMessage(event));
+        
+        log.info("Published PaymentInitiatedEvent to Axon EventBus for paymentId: {}", event.getPaymentId());
         
         return "Payment authorization initiated for paymentId: " + event.getPaymentId();
     }

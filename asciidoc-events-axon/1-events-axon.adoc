@@ -1,4 +1,4 @@
-= Events Driven Architecture with Axon Framework
+= 1-Events Driven Architecture with Axon Framework
 :toc: right
 :toclevels: 5
 :sectnums: 5
