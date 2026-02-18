@@ -1,0 +1,79 @@
+= Transaction Rollback in Payment Platform Architecture
+
+== Scope and Implementation
+
+=== Why Transaction Rollback is Needed
+
+The current event-driven payment architecture has **no compensating transactions** - once a payment progresses through the pipeline (Authorization → Settlement → Notification), there's no systematic way to undo completed steps if a later step fails.
+
+=== Implementation Approaches
+
+==== 1. Axon Saga Pattern (Recommended)
+
+[source,java]
+----
+@Saga
+public class PaymentProcessingSaga {
+    
+    @StartSaga
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentInitiatedEvent event) {
+        // Start saga workflow
+    }
+    
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentAuthorizedEvent event) {
+        // Trigger settlement
+    }
+    
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentFailedEvent event) {
+        // Trigger compensating transactions
+        commandGateway.send(new RefundPaymentCommand(event.getPaymentId()));
+        commandGateway.send(new CancelAuthorizationCommand(event.getPaymentId()));
+    }
+}
+----
+
+==== 2. Compensating Events
+
+Add compensating events to existing event handlers:
+
+* **PaymentRefundedEvent** - reverses settlement
+* **AuthorizationCancelledEvent** - reverses authorization  
+* **NotificationCancelledEvent** - reverses notifications
+
+==== 3. Implementation Steps
+
+. **Extend core-events** with compensating event classes
+. **Add saga configuration** to Axon setup
+. **Implement compensation logic** in each service
+. **Add timeout handling** for stuck transactions
+. **Update reconciliation** to detect orphaned transactions
+
+=== Benefits of Saga Approach
+
+The saga approach provides:
+
+* **Automatic rollback** when any step fails
+* **Exactly-once processing** semantics across the distributed payment pipeline
+* **Consistent state** even in failure scenarios
+* **Audit trail** of all compensation actions
+
+=== Current Architecture Gap
+
+Existing flow:
+```
+Payment Initiated → Authorization → Settlement → Notification
+                                    ↓
+                              [No Rollback Mechanism]
+```
+
+With Saga Pattern:
+```
+Payment Initiated → Authorization → Settlement → Notification
+         ↓               ↓              ↓              ↓
+    [Start Saga]   [Track State]  [Track State]  [Complete Saga]
+                      ↓              ↓              ↓
+                [Compensate]   [Compensate]   [Compensate]
+```

@@ -1,10 +1,30 @@
-curl --location 'http://localhost:8010/api/authorization/test' \
---header 'Content-Type: application/json' \
---data '{
-    "orderId": "order-123",
-    "amount": "100.00",
-    "currency": "USD",
-    "userId": "user-123",
-    "merchantId": "merchant-456",
-    "paymentMethod": "CREDIT_CARD"
-}'
+
+
+=== Circuit Breaker Implementation on API Gateway
+
+*Why Circuit Breaker is Needed*
+
+**YES** - Significant scope exists for circuit breaker implementation on the API Gateway in this payment platform architecture.
+
+* **Critical Entry Point**: API Gateway handles all external traffic (POSTMAN → API Gateway → Services)
+* **Financial Impact**: Payment failures require immediate protection mechanisms  
+* **Service Dependencies**: 7+ downstream services can fail independently
+* **Load Management**: API Gateway is ideal chokepoint for traffic control
+
+*Key Benefits*
+
+* **Load Protection**: Prevents cascade failures during high payment volume
+* **Service Isolation**: Failed services don't impact entire platform
+* **Rate Limiting**: Controls payment initiation requests per user/IP
+* **Fast Failure**: Immediate response when downstream services are down
+* **Automatic Recovery**: Self-healing when services recover
+
+*Implementation Scope*
+
+The API Gateway (port 8010) is the **perfect location** for circuit breakers because:
+
+* Centralized traffic control point
+* Already handles JWT validation and routing
+* Can implement per-service circuit breakers
+* Provides unified failure responses to clients
+* Enables monitoring and alerting from single location

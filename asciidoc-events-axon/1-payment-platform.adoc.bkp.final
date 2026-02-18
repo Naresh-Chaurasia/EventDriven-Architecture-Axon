@@ -861,3 +861,109 @@ curl --location 'http://localhost:7010/api/authorization/reject' \
 * Directly creating PaymentAuthorizedEvent. It will be picked up by SettlementEventHandler.
 * There is should log in settlement service.
 * TODO - Take action.
+
+=== Testing Settlement Failure Scenarios
+
+The settlement service now supports configurable failure testing to simulate real-world payment processing failures.
+
+=== Configuration Options
+
+*Edit `/settlement-service-ri/src/main/resources/application.properties`:*
+
+----
+# Settlement Failure Testing Configuration
+settlement.test.failure-rate=0.0  # Set to 0.5 for 50% failure rate, 1.0 for 100% failure
+settlement.test.force-failure=false # Set to true to force all settlements to fail
+----
+
+=== Test Scenarios
+
+=== Scenario 1: 100% Settlement Failure
+
+*1. Configure settlement service:*
+----
+settlement.test.force-failure=true
+----
+
+*2. Restart settlement service*
+
+*3. Test settlement failure:*
+----
+curl --location 'http://localhost:8010/api/authorization/test-settlement-failure' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-fail-123",
+    "amount": "100.00", 
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
+*4. Expected Results:*
+** Settlement service logs: "TEST MODE: Forcing settlement failure"
+** PaymentFailedEvent published
+** Retry attempts logged (3 attempts by default)
+** Final failure: "MAX_RETRIES_EXCEEDED"
+
+=== Scenario 2: 50% Random Failure Rate
+
+*1. Configure settlement service:*
+----
+settlement.test.force-failure=false
+settlement.test.failure-rate=0.5
+----
+
+*2. Restart settlement service*
+
+*3. Test multiple times to see both success and failure*
+
+=== Scenario 3: Retry Logic Testing
+
+*1. Configure for faster testing:*
+----
+settlement.retry.max-attempts=2
+settlement.retry.delay-ms=500
+settlement.test.force-failure=true
+----
+
+*2. Observe retry behavior in logs*
+
+=== Event Flow for Settlement Failure
+
+1* REST API → AuthorizationController.testSettlementFailure()
+2* EventBus.publish(PaymentAuthorizedEvent)
+3* SettlementEventHandler.on(PaymentAuthorizedEvent)
+4* SettlementProcessor.processSettlement()
+5* Provider simulation → FAILURE
+6* Retry attempts (1, 2, 3...)
+7* EventBus.publish(PaymentFailedEvent)
+8* Downstream services handle failure
+
+=== Monitoring Settlement Failures
+
+*Log patterns to watch:*
+
+----
+"TEST MODE: Forcing settlement failure"
+"Settlement attempt X failed for payment"
+"Settlement failed after X attempts"
+"Published PaymentFailedEvent"
+----
+
+=== Failure Reasons Simulated
+
+* "Insufficient funds in account"
+* "Invalid card details"  
+* "Payment provider network error"
+* "Transaction declined by risk assessment"
+
+=== Production Considerations
+
+* Always disable test mode in production
+* Monitor PaymentFailedEvent rates
+* Set up alerts for high failure rates
+* Implement manual review workflows
+
+
