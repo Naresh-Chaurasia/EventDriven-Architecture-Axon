@@ -1,0 +1,863 @@
+= 1- Payment Platform
+:toc: right
+:toclevels: 5
+:sectnums: 5
+:sectnumlevel: 5
+
+== Project Overview
+
+* *Domain*: Payments | Event-Driven Architecture | Distributed Systems | Resilience & Observability
+
+## 🏗️ High-Level Architecture
+
+```
+┌─────────────────┐    ┌─────────────────┐    ┌─────────────────┐
+│   POSTMAN       │    │   API Gateway   │    │  Payment Service│
+│                 │───▶│     (JWT)       │───▶│   (Initiation)  │
+└─────────────────┘    └─────────────────┘    └─────────────────┘
+                                                     │
+                                                     ▼
+                    ┌─────────────────┐    ┌─────────────────┐
+                    │  Event Bus      │◀───│  Event Publisher│
+         --───▶     │  (Axon Server)  │    │  (Payment Svc)  │
+        │           │                 │    │                 │
+        │           └─────────────────┘    └─────────────────┘
+        │                   ▲       │
+        ┌───────────────────|───────┼──────────────────────────┐
+        ▼                   |       ▼                          ▼
+┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐  ┌─────────────────┐
+│  Authorization  │  │   Settlement    │  │  Notification   │  │  Reconciliation │
+│  Service        │  │   Service       │  │  Service        │  │  Service        │
+└─────────────────┘  └─────────────────┘  └─────────────────┘  └─────────────────┘
+
+```
+
+##############################################
+
+
+== ✔️ eureka-discovery-service-ri-3x (8761)
+
+* [ ] http://localhost:8761/
+* [ ] Spring Cloud Version: 2022.0.2
+* [ ] Spring Boot Version: 3.0.6
+* [ ] Only Discovery Service
+
+----
+cd /Users/nareshchaurasia/nc/Java-Architect/EventDriven-Architecture-Axon/eureka-discovery-service-ri-3x
+./run-ms.sh
+----
+
+##############################################
+
+== ✔️ api-gateway-ri-3x (8010)
+
+* [ ] http://localhost:8010/api/hello
+* [ ] Spring Cloud Version: 2022.0.2
+* [ ] Spring Boot Version: 3.0.6
+* [ ] Routing
+* [ ] JWT Token Validation
+
+
+##############################################
+
+
+== user-ri-3x (8020)
+
+* [ ] http://localhost:8020/
+* [ ] User Registration + Login + JWT Token Generation
+
+=== Direct Call
+
+* http://localhost:8020/users/status/check (Call Directly. WebSecurity allows it)
+* http://localhost:8020/h2-console/login.jsp (Call Directly. WebSecurity allows it)
+* http://localhost:8020/swagger-ui/index.html (Call Directly. WebSecurity allows it)
+* POST: http://localhost:8020/users
+
+
+=== Via Gateway
+
+- **User**
+- http://localhost:8010/users/status/check (No Security at User MS. It just needs JWT token for access)
+- POST: http://localhost:8010/users
+- **User Actuator via Gateway**
+- http://localhost:8010/users-ri-3x/actuator/mappings
+- http://localhost:8010/users-ri-3x/actuator/health
+
+- **Gateway Actuator**
+- http://localhost:8010/actuator/gateway/routes
+- http://localhost:8010/actuator/health  
+- http://localhost:8010/actuator/info
+
+##############################################
+
+== dummy-ms-3x
+
+
+---
+
+##############################################
+
+
+##############################################
+
+
+== jwt-ri-3x (8030)
+
+* @PropertySource("classpath:jwt-application.properties")
+
+---
+
+##############################################
+
+
+---
+
+##############################################
+
+
+
+
+
+##############################################
+
+== ✔️ core-events-ri-lti 
+
+* *Location*: `/Users/nareshchaurasia/nc/Java-Architect/Java-CQRS-SAGA/core-events-ri-lti`
+
+* *Purpose*: Shared event definitions for the payment processing platform
+
+##############################################
+
+*Classes Created*
+
+
+* *PaymentEvent.java*: Base abstract class for all payment-related events in the CQRS event-driven architecture.
+  Base abstract event class
+
+* *PaymentInitiatedEvent.java* : Event fired when a new payment transaction is initiated in the payment processing platform* Used by: AuthorizationService
+
+* *PaymentAuthorizedEvent.java*: Event fired when a payment transaction has been successfully authorized by the AuthorizationService* Used by: SettlementService
+
+* *PaymentRejectedEvent.java*: Event fired when a payment transaction has been rejected by the AuthorizationService* Used by: OrderService (compensation)
+
+* *PaymentSettledEvent.java*: Event fired when a payment transaction has been successfully settled with the payment processor* Used by: OrderService (completion)
+
+* *Payment.java*: Domain model representing full payment lifecycle
+  *PaymentStatus enum*:
+** INITIATED, AUTHORIZED, REJECTED, SETTLED, FAILED
+
+##############################################
+
+
+== ✔️ authorization-service-ri (7010)
+
+* Authorization engine that evaluates payment transactions against business rules and risk criteria
+
+* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+
+---
+
+* Process PaymentInitiatedEvent
+** Generate PaymentAuthorizedEvent or PaymentRejectedEvent
+
+---
+
+* http://localhost:7010/h2-console/login.do
+
+
+----
+curl --location 'http://localhost:8081/api/authorization/test' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-123",
+    "amount": "100.00",
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
+* *Location*:`/Users/nareshchaurasia/nc/Java-Architect/EventDriven-Architecture-Axon/authorization-service-ri-lti`
+
+* *Purpose*:Payment authorization and risk assessment
+
+##############################################
+
+==== Components / Classes
+
+* *AuthorizationRulesEngine.java*
+
+Authorization engine that evaluates payment transactions against business rules and risk criteria* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+
+* *AuthorizationResult.java*: Result object containing the outcome of payment authorization evaluation.
+
+* *AuthorizationEventHandler.java*: Axon event handler
+* Receives: PaymentInitiatedEvent* How* Put in the event bus.
+* Publishes: PaymentAuthorizedEvent or PaymentRejectedEvent
+* Integration: Axon EventBus
+
+* *AuthorizationController.java*: REST API controller
+** Endpoint: POST `/api/authorization/test`
+** Purpose: Test authorization workflow
+
+* *XStreamConfig.java*: XStream configuration for secure XML serialization in the authorization service* Configures allowed package patterns for payment platform events and models to prevent security vulnerabilities during event serialization/deserialization with Axon Framework.
+
+##############################################
+
+---
+
+=== Event Flow Architecture
+
+* *Payment Authorization Workflow*
+* REST API → AuthorizationController.test()
+* EventBus.publish(PaymentInitiatedEvent)
+* AuthorizationEventHandler.on(PaymentInitiatedEvent)
+* AuthorizationRulesEngine.evaluate(event)
+* Business Rules → AuthorizationResult
+* EventBus.publish(PaymentAuthorizedEvent OR PaymentRejectedEvent)
+* Downstream services process results
+
+* *Integration Points*
+
+* *Downstream*
+** SettlementService
+
+* *Infrastructure*
+** Axon Server (event distribution)
+** H2 Database (audit and rule storage)
+
+##############################################
+
+=== Start Authorization Service
+
+----
+mvn spring-boot:run
+
+curl -X POST http://localhost:8081/api/authorization/test \
+  -H "Content-Type: application/json" \
+  -d '{"orderId":"order-123","amount":"100.00","currency":"USD","userId":"user-123","merchantId":"merchant-456","paymentMethod":"CREDIT_CARD"}'
+
+
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 1* Processing payment authorization for paymentId: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.s.AuthorizationRulesEngine       : 2* Evaluating authorization rules for payment: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.s.AuthorizationRulesEngine       : 3.Authorization result for payment ec4848c3-75bc-4c77-92f7-4c7f057f5f74: approved=true, riskScore=0
+2026-02-09T21:46:56.572+05:30  INFO 62841 --- [tion.handler]-0] c.p.p.a.h.AuthorizationEventHandler      : 4* Payment authorized: ec4848c3-75bc-4c77-92f7-4c7f057f5f74
+
+----
+
+*Expected Results*
+
+* Valid payments → PaymentAuthorizedEvent
+* Invalid payments → PaymentRejectedEvent with error codes
+* Logs show full authorization trail
+* Events visible in Axon Dashboard at [http://localhost:8024](http://localhost:8024)
+
+---
+
+##############################################
+
+
+== Axon Server (8024)
+
+* Download: https://download.axoniq.io/axonserver/AxonServer-4.6.7.zip
+
+----
+/Users/nareshchaurasia/nc/Java-Architect/AxonServer-4.6.7
+java -jar axonserver.jar
+----
+
+##############################################
+
+I chose *Axon Framework + Axon Server over Apache Kafka* because Axon is a higher-level framework built specifically for domain-driven, event-driven systems.
+
+Axon provides built-in support for commands, aggregates, event storage, and sagas, which map naturally to a payment lifecycle and ensure strong consistency and clean separation of concerns. This allowed me to focus on business workflow correctness rather than building infrastructure plumbing.
+
+Kafka is excellent for high-throughput event streaming and large-scale data pipelines, but it requires additional frameworks to implement domain patterns like CQRS and workflow orchestration.
+
+*Trade-off*: Axon improves developer productivity and domain modeling, while Kafka offers greater scalability and ecosystem flexibility. For a payment system focused on correctness and rapid development, Axon was the better fit.
+
+
+I'll analyze the current implementation to identify which Axon features are being used. Let me examine the codebase to provide you with a comprehensive overview.
+
+Let me search across the individual workspaces to identify Axon features being used:
+
+
+---
+
+##############################################
+
+
+Based on my analysis of the current implementation, here are the Axon Framework features being used:
+
+[cols="2,3"]
+|===
+
+| **Feature** | **Implementation Details**
+
+| **Event Handling** | `@EventHandler` annotations in AuthorizationEventHandler and SettlementEventHandler for processing PaymentInitiatedEvent and PaymentAuthorizedEvent
+
+| **Event Bus** | `EventBus` for publishing events (PaymentAuthorizedEvent, PaymentSettledEvent, PaymentFailedEvent, PaymentRejectedEvent) using `GenericEventMessage.asEventMessage()`
+
+| **Command Gateway** | `CommandGateway` used in AuthorizationEventHandler for sending PaymentRejectedEvent commands
+
+| **Event-Driven Architecture** | Complete CQRS pattern with event-driven communication between authorization, settlement, and notification services. 
+*Event Processing*:
+FULLY IMPLEMENTED - Complete event handling infrastructure
+@EventHandler annotations for event processing
+EventBus for event publishing
+Proper event-driven communication between services
+
+| **Domain Events** | Rich domain events (PaymentInitiatedEvent, PaymentAuthorizedEvent, PaymentSettledEvent, PaymentFailedEvent, PaymentRejectedEvent) with proper encapsulation
+
+| **Spring Integration** | `@Component` and `@Autowired` annotations for dependency injection with Axon components
+
+|===
+
+**Key Axon Features NOT Currently Used:**
+- Aggregates (`@Aggregate`)
+- Command Handlers (`@CommandHandler`) 
+- Sagas (`@Saga`)
+- Query Bus/Query Handlers
+- Event Sourcing
+
+The implementation focuses primarily on **event handling and routing** using Axon's messaging infrastructure, demonstrating a clean event-driven architecture without full aggregate/command patterns.
+
+---
+
+##############################################
+
+----
+curl -X GET "http://localhost:8024/v1/events" \
+  -H "Content-Type: application/json" \
+  --max-time 2
+----  
+
+* Command(POSTMAN) → PaymentInitiatedEvent → Authorization Logic → PaymentAuthorizedEvent
+
+
+* id:1
+
+data:{"messageIdentifier":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentInitiatedEvent*","data":"<com.payment.platform.core.events.PaymentInitiatedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.557579</timestamp>\n  <amount>100.00</amount>\n  <currency>USD</currency>\n  <userId>user-123</userId>\n  <merchantId>merchant-456</merchantId>\n  <paymentMethod>CREDIT_CARD</paymentMethod>\n</com.payment.platform.core.events.PaymentInitiatedEvent>","revision":""},"timestamp":1771053961558,"metaData":{}}
+
+* id:2
+
+data:{"messageIdentifier":"2d74ea43-db99-4602-9287-f6ddca0d5455","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentAuthorizedEvent*","data":"<com.payment.platform.core.events.PaymentAuthorizedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.855482</timestamp>\n  <authorizationCode>AUTH_A2E13DBB</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771053961855,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
+
+* id:3
+
+data:{"messageIdentifier":"478a67e7-007b-4c9d-99e3-485340587765","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentSettledEvent*","data":"<com.payment.platform.core.events.PaymentSettledEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T15:43:21.33997</timestamp>\n  <settlementId>SETTLE_1771064001339_4801</settlementId>\n  <settlementDate>2026-02-14T15:43:21.339959</settlementDate>\n</com.payment.platform.core.events.PaymentSettledEvent>","revision":""},"timestamp":1771064001340,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2d74ea43-db99-4602-9287-f6ddca0d5455"}}
+
+* id:4
+
+data:{"messageIdentifier":"b6f11469-95eb-447a-bd66-245ea2f4a318","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.*PaymentAuthorizedEvent*","data":"<com.payment.platform.core.events.PaymentAuthorizedEvent>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-15T08:42:18.657874</timestamp>\n  <authorizationCode>AUTH_9A06480A</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771125138657,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
+
+##############################################
+
+== ✔️ settlement-service-ri (7020)
+
+=== Pre-Req
+
+* Update `settlement-application.properties`
+
+*Settlement Service* is a Spring Boot microservice that processes authorized payments in an event-driven payment platform using Axon Framework.
+
+*Key Functions:*
+
+* Receives `PaymentAuthorizedEvent` from Authorization Service
+* Processes payments with external providers via #SettlementProcessor#
+** Handles actual payment settlement logic
+** Simulates payment provider interactions
+** Determines payment success/failure
+** Manages retry attempts (up to 3 retries)
+** Generates unique settlement IDs
+** Provides failure reason categorization
+** Acts as the core settlement processing engine
+** Delegated to by SettlementEventHandler for payment operations
+* Handles retries and payment failures
+* Publishes `PaymentSettledEvent` on success or `PaymentFailedEvent` on failure
+
+*Architecture:*
+
+- Second service in payment processing pipeline
+- Uses CQRS with event sourcing (Axon Framework)
+- Runs on port 7020, connects to Axon Server (localhost:8124)
+- H2 database for audit trail
+
+*Input/Output:*
+
+- Input: PaymentAuthorizedEvent (paymentId, orderId, amount, authCode)
+- Output: PaymentSettledEvent or PaymentFailedEvent for downstream OrderService
+
+The service acts as the critical bridge between payment authorization and order fulfillment, ensuring payments are actually settled with financial institutions.
+
+##############################################
+
+---
+
+* *Flow*
+** Receives PaymentAuthorizedEvent via Axon Framework
+** Delegates to SettlementProcessor for payment processing
+** Publishes PaymentSettledEvent or handles settlement failures
+** Handles exceptions and implements retry logic
+
+---
+
+=== Logs
+
+.settlement-service-ri logs
+[%collapsible]
+====
+
+----
+: 1* Processing payment settlement for authorized paymentId: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.338+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : Event received - PaymentId: 677495be-26a8-430a-a676-089ff0adb461, OrderId: order-123, AuthCode: AUTH_A2E13DBB, RiskScore: 0, Amount: 100.00
+2026-02-14T15:43:21.338+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 2* Delegating to SettlementProcessor for payment: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 2* Processing settlement for authorized payment: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : Payment details - Amount: 100.00, Auth Code: AUTH_A2E13DBB, Risk Score: 0
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : Attempt 1 to settle payment: 677495be-26a8-430a-a676-089ff0adb461
+2026-02-14T15:43:21.339+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.service.SettlementProcessor      : 3* Payment settled successfully: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
+2026-02-14T15:43:21.341+05:30  INFO 73743 --- [ment.handler]-0] c.p.p.s.handler.SettlementEventHandler   : 4* Payment settlement completed: 677495be-26a8-430a-a676-089ff0adb461, settlementId: SETTLE_1771064001339_4801
+----
+
+====
+
+##############################################
+
+=== Event Details
+
+curl -X GET "http://localhost:8024/v1/events"
+
+.event details from axon
+[%collapsible]
+====
+
+id:1
+data:{"messageIdentifier":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.PaymentInitiatedEvent","data":"<com.payment.platform.core.events.*PaymentInitiatedEvent*>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.557579</timestamp>\n  <amount>100.00</amount>\n  <currency>USD</currency>\n  <userId>user-123</userId>\n  <merchantId>merchant-456</merchantId>\n  <paymentMethod>CREDIT_CARD</paymentMethod>\n</com.payment.platform.core.events.PaymentInitiatedEvent>","revision":""},"timestamp":1771053961558,"metaData":{}}
+
+id:2
+data:{"messageIdentifier":"2d74ea43-db99-4602-9287-f6ddca0d5455","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.PaymentAuthorizedEvent","data":"<com.payment.platform.core.events.*PaymentAuthorizedEvent*>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T12:56:01.855482</timestamp>\n  <authorizationCode>AUTH_A2E13DBB</authorizationCode>\n  <riskScore>0</riskScore>\n  <amount>100.00</amount>\n</com.payment.platform.core.events.PaymentAuthorizedEvent>","revision":""},"timestamp":1771053961855,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0"}}
+
+id:3
+data:{"messageIdentifier":"478a67e7-007b-4c9d-99e3-485340587765","aggregateIdentifier":"","aggregateSequenceNumber":0,"aggregateType":"","payload":{"type":"com.payment.platform.core.events.PaymentSettledEvent","data":"<com.payment.platform.core.events.*PaymentSettledEvent*>\n  <paymentId>677495be-26a8-430a-a676-089ff0adb461</paymentId>\n  <orderId>order-123</orderId>\n  <timestamp>2026-02-14T15:43:21.33997</timestamp>\n  <settlementId>SETTLE_1771064001339_4801</settlementId>\n  <settlementDate>2026-02-14T15:43:21.339959</settlementDate>\n</com.payment.platform.core.events.PaymentSettledEvent>","revision":""},"timestamp":1771064001340,"metaData":{"traceId":"2ecc17f0-e398-41a3-b7fc-5d49208574d0","correlationId":"2d74ea43-db99-4602-9287-f6ddca0d5455"}}
+
+====
+
+
+
+##############################################
+
+---
+
+== ✔️ Notification Service Role (7030)
+
+*What It Does:*
+- Receives events from Axon Server (PaymentSettledEvent, PaymentRejectedEvent, etc.)
+- Sends notifications (email, SMS, push notifications)
+- Logs notifications to database for audit trail
+- Provides REST APIs to query notification status
+
+*What It Does NOT Do:*
+- Does NOT publish events back to Axon Server
+- Does NOT trigger other services
+- Does NOT participate in command/query flow
+
+*Event Flow Architecture*
+
+----
+REST API → Authorization Service → Axon Server
+    ↓
+PaymentInitiatedEvent → Authorization Service
+    ↓  
+PaymentAuthorizedEvent → Settlement Service
+    ↓
+PaymentSettledEvent → Notification Service (TERMINAL)
+    ↓
+[Email/SMS sent] → END
+----
+
+*Why This Design Makes Sense*
+- Single Responsibility: Notification service only handles notifications
+- No Side Effects: Sending notifications shouldn't trigger business logic
+- Audit Trail: Notifications are logged but don't affect payment flow
+- Resilience: If notification fails, payment is still complete
+
+*NotificationSentEvent (Alternative - NOT implemented)*
+
+- Could publish NotificationSentEvent for tracking
+- Could trigger analytics service
+* Could update customer communication preferences
+* Adds complexity but provides more observability
+
+##############################################
+
+---
+
+
+== Reconciliation (7050)
+
+The reconciliation service ensures **data consistency** across the payment platform by comparing payments, authorizations, and settlements.
+
+=== What It Does
+
+**Event-Driven Ledger Updates**: Listens to payment events (initiated, authorized, rejected, settled) via Axon Framework and maintains a payment ledger database.
+
+**Automated Reconciliation**: Runs scheduled jobs to analyze ledger entries and detect mismatches between payment status and settlement data.
+
+**Mismatch Detection**: Identifies three main issues:
+
+- **Missing Settlement ID**: Payment marked SETTLED but no settlement ID (HIGH severity)
+- **Status Mismatch**: Settlement ID exists but payment not SETTLED (MEDIUM severity)  
+- **Stuck Authorization**: Payment in AUTHORIZED status over 24 hours (MEDIUM severity)
+
+**Reporting & Monitoring**: Generates detailed reconciliation reports with statistics, structured logging, and metrics for observability.
+
+**Manual Operations**: Provides REST API endpoints for ad-hoc reconciliation of full datasets, date ranges, or specific orders.
+
+The service acts as the financial integrity layer, ensuring every payment's lifecycle is properly tracked from initiation through settlement, alerting operations teams to any inconsistencies that require manual intervention.
+
+---
+
+##############################################
+
+.Example Flow to Understand Reconciliation
+[%collapsible]
+====
+*1* Payment Initiation
+
+*What happens:* Customer says "I want to pay"
+
+*Simple example:*
+
+* You click "Pay Now" on Amazon
+* You enter credit card details
+* You click "Confirm Payment"
+
+*What the system does:*
+
+* Creates a payment request: "Customer wants to pay $50"
+* Gives it an ID: `PAY-12345`
+* Says: "Got it! Starting payment process"
+
+##############################################
+
+---
+
+*2* Payment Authorization
+
+*What happens:* Bank says "Yes, this payment is okay"
+
+*Simple example:*
+
+* Amazon sends your card details to Visa
+* Visa checks: Does customer have money? Is card valid?
+* Visa replies: "Yes, approve this $50 charge"
+
+*What the system does:*
+
+* Creates authorization code: `AUTH-789`
+* Records: "Payment approved, but money not moved yet"
+* Reserves the money in your account
+
+##############################################
+
+---
+
+*3* Payment Settlement
+
+*What happens:* Money actually moves from customer to merchant
+
+*Simple example:*
+
+* At midnight, Visa tells Amazon's bank: "Move that $50 now"
+* Amazon's bank receives the money
+* Your card is actually charged $50
+
+*What the system does:*
+
+* Creates settlement record: "Money moved successfully"
+* Updates: "Payment is now complete"
+* Records settlement ID: `SETTLE-ABC`
+
+##############################################
+
+---
+
+*4* Payment Notification*
+
+*What happens:* Everyone gets told about the payment
+
+*Simple example:*
+
+* Amazon emails you: "Your payment of $50 was successful"
+* Amazon's warehouse gets alert: "Ship the order"
+* Amazon's accounting sees: "Record this revenue"
+
+*What the system does:*
+
+* Sends email to customer
+* Updates order status to "Paid"
+* Notifies warehouse to ship product
+* Records everything in accounting system
+
+##############################################
+
+---
+
+*5* Payment Reconciliation
+
+*What happens:* Accountant checks that everything matches perfectly
+
+*Simple example:*
+
+*Next morning, the accountant checks:*
+
+*What should have happened:*
+
+* Customer paid: $50
+* Amazon should receive: $48 (after $2 fees)
+* Bank should show: $50 moved
+* Fees should be: $2
+
+*What actually happened:*
+
+* Customer paid: $50 ✅
+* Amazon received: $47.50 ❌ (50 cents missing!)
+* Bank shows: $50 ✅
+* Fees charged: $2.50 ❌ (50 cents extra!)
+
+*What reconciliation does:*
+
+* *Finds the problem:* "We were overcharged 50 cents in fees!"
+* *Flags it:* "Investigate this fee difference"
+* *Fixes it:* "Get the 50 cents back from bank"
+* *Prevents future issues:* "Check fee calculations carefully"
+
+*Why All 5 Steps Matter*
+
+*Without any step:*
+
+* *No Initiation:* Customer can't start payment
+* *No Authorization:* Fraudulent payments happen
+* *No Settlement:* Money never actually moves
+* *No Notification:* Nobody knows what happened
+* *No Reconciliation:* Money disappears without anyone noticing
+
+*With all steps:*
+
+* Customer pays → System knows about it
+* Bank approves → No fraud, money is available
+* Money moves → Merchant gets paid
+* Everyone told → Order ships, customer happy
+* Accountant checks → No money lost, no errors
+
+====
+
+##############################################
+
+== 📍 TODOs
+
+=== Transaction Rollback in Payment Platform Architecture
+
+*Scope and Implementation*
+
+*Why Transaction Rollback is Needed*
+
+The current event-driven payment architecture has **no compensating transactions** - once a payment progresses through the pipeline (Authorization → Settlement → Notification), there's no systematic way to undo completed steps if a later step fails.
+
+*Implementation Approaches*
+
+*1. Axon Saga Pattern (Recommended)*
+
+[source,java]
+----
+@Saga
+public class PaymentProcessingSaga {
+    
+    @StartSaga
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentInitiatedEvent event) {
+        // Start saga workflow
+    }
+    
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentAuthorizedEvent event) {
+        // Trigger settlement
+    }
+    
+    @SagaEventHandler(associationProperty = "paymentId")
+    public void handle(PaymentFailedEvent event) {
+        // Trigger compensating transactions
+        commandGateway.send(new RefundPaymentCommand(event.getPaymentId()));
+        commandGateway.send(new CancelAuthorizationCommand(event.getPaymentId()));
+    }
+}
+----
+
+*2. Compensating Events*
+
+Add compensating events to existing event handlers:
+
+* **PaymentRefundedEvent** - reverses settlement
+* **AuthorizationCancelledEvent** - reverses authorization  
+* **NotificationCancelledEvent** - reverses notifications
+
+
+*Benefits of Saga Approach*
+
+The saga approach provides:
+
+* **Automatic rollback** when any step fails
+* **Exactly-once processing** semantics across the distributed payment pipeline
+* **Consistent state** even in failure scenarios
+* **Audit trail** of all compensation actions
+
+*Current Architecture Gap*
+
+Existing flow:
+```
+Payment Initiated → Authorization → Settlement → Notification
+                                    ↓
+                              [No Rollback Mechanism]
+```
+
+With Saga Pattern:
+```
+Payment Initiated → Authorization → Settlement → Notification
+         ↓               ↓              ↓              ↓
+    [Start Saga]   [Track State]  [Track State]  [Complete Saga]
+                      ↓              ↓              ↓
+                [Compensate]   [Compensate]   [Compensate]
+```
+
+##############################################
+
+
+---
+
+
+=== Observability & Monitoring in Payment Platform
+
+*Scope Assessment*
+
+**YES** - Significant scope exists for comprehensive observability and monitoring in this event-driven payment architecture.
+
+*Why It's Critical*
+
+* **Distributed Complexity**: 7+ microservices with async event flow makes debugging challenging
+* **Financial Transactions**: Payment failures require immediate detection and resolution
+* **Event-Driven Nature**: Event processing failures can be silent without proper monitoring
+* **Business Impact**: Payment delays affect customer experience and revenue
+
+*Implementation Approach*
+
+* *1. Distributed Tracing*
+* **Correlation IDs**: Already present in event metadata
+* **Span Tracking**: Track payment lifecycle across services
+* **Tool**: Jaeger or Zipkin integration
+
+* *2. Metrics Collection*
+* **Payment Metrics**: Volume, authorization rates, settlement success
+* **System Metrics**: Event processing latency, queue depths
+* **Business Metrics**: Revenue tracking, failure costs
+* **Tool**: Prometheus + Grafana
+
+* *Structured Logging*
+* **Event Logging**: Already implemented in services
+* **Centralized Collection**: ELK stack or similar
+* **Log Correlation**: Link events to payment transactions
+
+* *4. Health Monitoring*
+* **Service Health**: Spring Boot Actuator endpoints
+* **Event Bus Health**: Axon Server connectivity
+* **Database Health**: Connection pool monitoring
+
+* *5. Alerting Strategy*
+* **Business Alerts**: Payment failure rate > 5%
+* **Technical Alerts**: Service downtime, high latency
+* **Event Alerts**: Event processing backlog > 1000
+
+* #*Current Architecture Advantages*#
+
+* **Event Store**: Axon Server provides natural audit trail
+* **Spring Boot**: Built-in actuator endpoints
+* **Event Metadata**: Already includes correlation IDs
+* **Service Boundaries**: Clean monitoring points at each service
+
+
+
+##############################################
+
+
+---
+
+
+
+=== Circuit Breaker Implementation on API Gateway
+
+*Why Circuit Breaker is Needed*
+
+**YES** - Significant scope exists for circuit breaker implementation on the API Gateway in this payment platform architecture.
+
+* **Critical Entry Point**: API Gateway handles all external traffic (POSTMAN → API Gateway → Services)
+* **Financial Impact**: Payment failures require immediate protection mechanisms  
+* **Service Dependencies**: 7+ downstream services can fail independently
+* **Load Management**: API Gateway is ideal chokepoint for traffic control
+
+*Key Benefits*
+
+* **Load Protection**: Prevents cascade failures during high payment volume
+* **Service Isolation**: Failed services don't impact entire platform
+* **Rate Limiting**: Controls payment initiation requests per user/IP
+* **Fast Failure**: Immediate response when downstream services are down
+* **Automatic Recovery**: Self-healing when services recover
+
+*Implementation Scope*
+
+The API Gateway (port 8010) is the **perfect location** for circuit breakers because:
+
+* Centralized traffic control point
+* Already handles JWT validation and routing
+* Can implement per-service circuit breakers
+* Provides unified failure responses to clients
+* Enables monitoring and alerting from single location
+
+##############################################
+
+
+---
+
+== Use Cases
+
+=== Payment Rejected
+
+* NotificationEventHandler handles PaymentRejectedEvent
+** Direct Call to create PaymentRejectedEvent
+** As a result NotificationEventHandler/PaymentRejectedEvent is triggered.
+----
+curl --location 'http://localhost:7010/api/authorization/reject' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-456",
+    "amount": "500.00", 
+    "currency": "USD",
+    "userId": "user-456",
+    "merchantId": "merchant-789",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
+
+##############################################
+
+---
+
+=== Settlement Failure Testing
+
+
+
+* *POSTMAN*: settlement-failure
+* settlement.test.failure-rate=0.0
+* Directly creating PaymentAuthorizedEvent. It will be picked up by SettlementEventHandler.
+* There is should log in settlement service.
+* TODO - Take action.
