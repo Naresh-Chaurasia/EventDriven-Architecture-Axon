@@ -2,6 +2,7 @@ package com.payment.platform.settlement;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.context.annotation.PropertySource;
 
 /**
  * Main Spring Boot application for the Payment Settlement Service.
@@ -25,6 +26,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * - Database: H2 for settlement tracking and audit trail
  */
 @SpringBootApplication
+@PropertySource("classpath:settlement-application.properties")
 public class SettlementServiceApplication {
 
     public static void main(String[] args) {
