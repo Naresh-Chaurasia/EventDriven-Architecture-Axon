@@ -77,15 +77,27 @@ public class SettlementEventHandler {
                         event.getPaymentId(), result.getSettlementId());
                 
             } else {
-                // Settlement failed - log and potentially trigger compensation
+                // Settlement failed - publish PaymentFailedEvent
                 log.error("4. Payment settlement failed for paymentId: {}, attempts: {}, reasons: {}", 
                         event.getPaymentId(), result.getRetryCount(), result.getFailureReasons());
                 
-                // In a real system, you might:
+                // Create and publish PaymentFailedEvent for downstream services
+                PaymentFailedEvent failedEvent = new PaymentFailedEvent(
+                    event.getPaymentId(),
+                    event.getOrderId(),
+                    String.join("; ", result.getFailureReasons()),
+                    result.getRetryCount() >= 3 ? "MAX_RETRIES_EXCEEDED" : "PROVIDER_ERROR",
+                    result.getRetryCount()
+                );
+                
+                eventBus.publish(GenericEventMessage.asEventMessage(failedEvent));
+                log.info("Published PaymentFailedEvent for paymentId: {}, errorCode: {}", 
+                        event.getPaymentId(), failedEvent.getErrorCode());
+                
+                // In a real system, you might also:
                 // 1. Send notification to customer service
                 // 2. Update payment status in database
                 // 3. Trigger manual review process
-                // 4. Send PaymentFailedEvent to OrderService for compensation
             }
             
         } catch (Exception e) {

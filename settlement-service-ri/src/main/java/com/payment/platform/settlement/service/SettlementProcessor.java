@@ -44,6 +44,12 @@ public class SettlementProcessor {
     @Value("${settlement.payment.provider.mock:true}")
     private boolean useMockProvider;
     
+    @Value("${settlement.test.failure-rate:0.0}")
+    private double testFailureRate;
+    
+    @Value("${settlement.test.force-failure:false}")
+    private boolean forceFailure;
+    
     private final Random random = new Random();
     
     public SettlementResult processSettlement(PaymentAuthorizedEvent event) {
@@ -104,8 +110,22 @@ public class SettlementProcessor {
     
     private boolean processWithProvider(PaymentAuthorizedEvent event) {
         if (useMockProvider) {
-            // Mock payment provider - 100% success rate for testing
-            return random.nextDouble() < 1.0;
+            // Check if we should force failure for testing
+            if (forceFailure) {
+                log.info("TEST MODE: Forcing settlement failure for payment: {}", event.getPaymentId());
+                return false;
+            }
+            
+            // Apply configurable failure rate for testing
+            if (testFailureRate > 0.0) {
+                boolean success = random.nextDouble() >= testFailureRate;
+                log.debug("TEST MODE: Settlement outcome for payment {}: {} (failure rate: {})", 
+                         event.getPaymentId(), success ? "SUCCESS" : "FAILURE", testFailureRate);
+                return success;
+            }
+            
+            // Default mock payment provider - 100% success rate for normal testing
+            return true;
         }
         
         // Real payment provider integration would go here

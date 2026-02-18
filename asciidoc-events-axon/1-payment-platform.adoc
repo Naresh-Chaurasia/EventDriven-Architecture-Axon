@@ -7,10 +7,92 @@
 == Project Overview
 
 * *Domain*: Payments | Event-Driven Architecture | Distributed Systems | Resilience & Observability
-* *Architecture*: CQRS + Event-Driven Architecture with Axon Framework
-* *Java Version*: 17
-* *Spring Boot*: 3.x
-* *Axon Framework*: 4.7.4
+
+##############################################
+
+
+== eureka-discovery-service-ri-3x (8761)
+
+* [ ] http://localhost:8761/
+* [ ] Spring Cloud Version: 2022.0.2
+* [ ] Spring Boot Version: 3.0.6
+* [ ] Only Discovery Service
+
+----
+cd /Users/nareshchaurasia/nc/Java-Architect/EventDriven-Architecture-Axon/eureka-discovery-service-ri-3x
+./run-ms.sh
+----
+
+##############################################
+
+== api-gateway-ri-3x (8010)
+
+* [ ] http://localhost:8010/api/hello
+* [ ] Spring Cloud Version: 2022.0.2
+* [ ] Spring Boot Version: 3.0.6
+* [ ] Routing
+* [ ] JWT Token Validation
+
+
+##############################################
+
+
+== user-ri-3x (8020)
+
+* [ ] http://localhost:8020/
+* [ ] User Registration + Login + JWT Token Generation
+
+=== Direct Call
+
+* http://localhost:8020/users/status/check (Call Directly. WebSecurity allows it)
+* http://localhost:8020/h2-console/login.jsp (Call Directly. WebSecurity allows it)
+* http://localhost:8020/swagger-ui/index.html (Call Directly. WebSecurity allows it)
+* POST: http://localhost:8020/users
+
+
+=== Via Gateway
+
+- **User**
+- http://localhost:8010/users/status/check (No Security at User MS. It just needs JWT token for access)
+- POST: http://localhost:8010/users
+- **User Actuator via Gateway**
+- http://localhost:8010/users-ri-3x/actuator/mappings
+- http://localhost:8010/users-ri-3x/actuator/health
+
+- **Gateway Actuator**
+- http://localhost:8010/actuator/gateway/routes
+- http://localhost:8010/actuator/health  
+- http://localhost:8010/actuator/info
+
+##############################################
+
+== dummy-ms-3x
+
+
+---
+
+##############################################
+
+
+##############################################
+
+
+== jwt-ri-3x (8030)
+
+* @PropertySource("classpath:jwt-application.properties")
+
+---
+
+##############################################
+
+
+---
+
+##############################################
+
+
+
+
 
 ##############################################
 
@@ -24,9 +106,7 @@
 
 *Classes Created*
 
-.core-events-ri-lti classes
-[%collapsible]
-====
+
 * *PaymentEvent.java*: Base abstract class for all payment-related events in the CQRS event-driven architecture.
   Base abstract event class
 
@@ -38,21 +118,25 @@
 
 * *PaymentSettledEvent.java*: Event fired when a payment transaction has been successfully settled with the payment processor* Used by: OrderService (completion)
 
-* *Payment.java*Domain model representing full payment lifecycle
+* *Payment.java*: Domain model representing full payment lifecycle
   *PaymentStatus enum*:
-
-  * INITIATED, AUTHORIZED, REJECTED, SETTLED, FAILED
-====
-
-
+** INITIATED, AUTHORIZED, REJECTED, SETTLED, FAILED
 
 ##############################################
 
----
 
 == ✔️ authorization-service-ri (7010)
 
-Authorization engine that evaluates payment transactions against business rules and risk criteria* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+* Authorization engine that evaluates payment transactions against business rules and risk criteria
+
+* Performs real-time authorization decisions based on amount limits, risk scoring, merchant validation, and currency support to ensure secure payment processing.
+
+---
+
+* Process PaymentInitiatedEvent
+** Generate PaymentAuthorizedEvent or PaymentRejectedEvent
+
+---
 
 * http://localhost:7010/h2-console/login.do
 
@@ -76,17 +160,7 @@ curl --location 'http://localhost:8081/api/authorization/test' \
 
 ##############################################
 
-*Classes Created*
-
-.authorization-service-ri-lti classes
-[%collapsible]
-====
-* *AuthorizationServiceApplication.java*
-  Main Spring Boot application
-
-  * Port: 8081
-  * Axon Server: localhost:8124
-  * Database: H2 (in-memory)
+==== Components / Classes
 
 * *AuthorizationRulesEngine.java*
 
@@ -95,84 +169,43 @@ Authorization engine that evaluates payment transactions against business rules 
 * *AuthorizationResult.java*: Result object containing the outcome of payment authorization evaluation.
 
 * *AuthorizationEventHandler.java*: Axon event handler
-
-* #Receives: PaymentInitiatedEvent* How* Put in the event bus#.
+* Receives: PaymentInitiatedEvent* How* Put in the event bus.
 * Publishes: PaymentAuthorizedEvent or PaymentRejectedEvent
 * Integration: Axon EventBus
 
-* *AuthorizationController.java*
-  REST API controller
-
-  * Endpoint: POST `/api/authorization/test`
-  * Purpose: Test authorization workflow
+* *AuthorizationController.java*: REST API controller
+** Endpoint: POST `/api/authorization/test`
+** Purpose: Test authorization workflow
 
 * *XStreamConfig.java*: XStream configuration for secure XML serialization in the authorization service* Configures allowed package patterns for payment platform events and models to prevent security vulnerabilities during event serialization/deserialization with Axon Framework.
-====
-
-##############################################
-
-*application.properties*
-
-----
-spring.datasource.url=jdbc:h2:mem:authorizationdb
-spring.datasource.username=sa
-spring.datasource.password=password
-spring.jpa.hibernate.ddl-auto=create-drop
-spring.jpa.show-sql=false
-
-
-axon.axonserver.servers=localhost:8124
-axon.axonserver.token=123abc
-axon.serializer.events=xstream
-axon.serializer.messages=xstream
-
-axon.serialization.xstream.allowed-types=com.payment.platform.**,com.appsdeveloperblog.**
-----
-
 
 ##############################################
 
 ---
 
-*Event Flow Architecture*
+=== Event Flow Architecture
 
-*Payment Authorization Workflow*
+* *Payment Authorization Workflow*
+* REST API → AuthorizationController.test()
+* EventBus.publish(PaymentInitiatedEvent)
+* AuthorizationEventHandler.on(PaymentInitiatedEvent)
+* AuthorizationRulesEngine.evaluate(event)
+* Business Rules → AuthorizationResult
+* EventBus.publish(PaymentAuthorizedEvent OR PaymentRejectedEvent)
+* Downstream services process results
 
-1* REST API → AuthorizationController.test()
-2* EventBus.publish(PaymentInitiatedEvent)
-3* AuthorizationEventHandler.on(PaymentInitiatedEvent)
-4* AuthorizationRulesEngine.evaluate(event)
-5* Business Rules → AuthorizationResult
-6* EventBus.publish(PaymentAuthorizedEvent OR PaymentRejectedEvent)
-7* Downstream services process results
+* *Integration Points*
 
-*Integration Points*
-
-* Upstream:
-** REST API
-** OrderService (via events)
-
-* Downstream:
+* *Downstream*
 ** SettlementService
-** OrderService (via events)
 
-* Infrastructure:
+* *Infrastructure*
 ** Axon Server (event distribution)
 ** H2 Database (audit and rule storage)
 
 ##############################################
 
-
-== Axon Server (8024)
-
-* Download: https://download.axoniq.io/axonserver/AxonServer-4.6.7.zip
-
-----
-/Users/nareshchaurasia/nc/Java-Architect/AxonServer-4.6.7
-java -jar axonserver.jar
-----
-
-*Start Authorization Service*
+=== Start Authorization Service
 
 ----
 mvn spring-boot:run
@@ -197,6 +230,28 @@ curl -X POST http://localhost:8081/api/authorization/test \
 * Events visible in Axon Dashboard at [http://localhost:8024](http://localhost:8024)
 
 ---
+
+##############################################
+
+
+== Axon Server (8024)
+
+* Download: https://download.axoniq.io/axonserver/AxonServer-4.6.7.zip
+
+----
+/Users/nareshchaurasia/nc/Java-Architect/AxonServer-4.6.7
+java -jar axonserver.jar
+----
+
+##############################################
+
+I chose Axon Framework + Axon Server over Apache Kafka because Axon is a higher-level framework built specifically for domain-driven, event-driven systems.
+
+Axon provides built-in support for commands, aggregates, event storage, and sagas, which map naturally to a payment lifecycle and ensure strong consistency and clean separation of concerns. This allowed me to focus on business workflow correctness rather than building infrastructure plumbing.
+
+Kafka is excellent for high-throughput event streaming and large-scale data pipelines, but it requires additional frameworks to implement domain patterns like CQRS and workflow orchestration.
+
+*Trade-off*: Axon improves developer productivity and domain modeling, while Kafka offers greater scalability and ecosystem flexibility. For a payment system focused on correctness and rapid development, Axon was the better fit.
 
 
 ##############################################
@@ -445,14 +500,141 @@ PaymentSettledEvent → Notification Service (TERMINAL)
 
 ---
 
+== Use Cases
+
+=== Payment Rejected
+
+* NotificationEventHandler handles PaymentRejectedEvent
+** Direct Call to create PaymentRejectedEvent
+** As a result NotificationEventHandler/PaymentRejectedEvent is triggered.
+----
+curl --location 'http://localhost:7010/api/authorization/reject' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-456",
+    "amount": "500.00", 
+    "currency": "USD",
+    "userId": "user-456",
+    "merchantId": "merchant-789",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
 
 ##############################################
 
 ---
 
+== Settlement Failure Testing
 
-##############################################
+* *POSTMAN*: settlement-failure
+* settlement.test.failure-rate=0.0
+* Directly creating PaymentAuthorizedEvent. It will be picked up by SettlementEventHandler.
+* There is should log in settlement service.
+* TODO - Take action.
 
----
+=== Testing Settlement Failure Scenarios
+
+The settlement service now supports configurable failure testing to simulate real-world payment processing failures.
+
+=== Configuration Options
+
+*Edit `/settlement-service-ri/src/main/resources/application.properties`:*
+
+----
+# Settlement Failure Testing Configuration
+settlement.test.failure-rate=0.0  # Set to 0.5 for 50% failure rate, 1.0 for 100% failure
+settlement.test.force-failure=false # Set to true to force all settlements to fail
+----
+
+=== Test Scenarios
+
+=== Scenario 1: 100% Settlement Failure
+
+*1. Configure settlement service:*
+----
+settlement.test.force-failure=true
+----
+
+*2. Restart settlement service*
+
+*3. Test settlement failure:*
+----
+curl --location 'http://localhost:8010/api/authorization/test-settlement-failure' \
+--header 'Content-Type: application/json' \
+--data '{
+    "orderId": "order-fail-123",
+    "amount": "100.00", 
+    "currency": "USD",
+    "userId": "user-123",
+    "merchantId": "merchant-456",
+    "paymentMethod": "CREDIT_CARD"
+}'
+----
+
+*4. Expected Results:*
+** Settlement service logs: "TEST MODE: Forcing settlement failure"
+** PaymentFailedEvent published
+** Retry attempts logged (3 attempts by default)
+** Final failure: "MAX_RETRIES_EXCEEDED"
+
+=== Scenario 2: 50% Random Failure Rate
+
+*1. Configure settlement service:*
+----
+settlement.test.force-failure=false
+settlement.test.failure-rate=0.5
+----
+
+*2. Restart settlement service*
+
+*3. Test multiple times to see both success and failure*
+
+=== Scenario 3: Retry Logic Testing
+
+*1. Configure for faster testing:*
+----
+settlement.retry.max-attempts=2
+settlement.retry.delay-ms=500
+settlement.test.force-failure=true
+----
+
+*2. Observe retry behavior in logs*
+
+=== Event Flow for Settlement Failure
+
+1* REST API → AuthorizationController.testSettlementFailure()
+2* EventBus.publish(PaymentAuthorizedEvent)
+3* SettlementEventHandler.on(PaymentAuthorizedEvent)
+4* SettlementProcessor.processSettlement()
+5* Provider simulation → FAILURE
+6* Retry attempts (1, 2, 3...)
+7* EventBus.publish(PaymentFailedEvent)
+8* Downstream services handle failure
+
+=== Monitoring Settlement Failures
+
+*Log patterns to watch:*
+
+----
+"TEST MODE: Forcing settlement failure"
+"Settlement attempt X failed for payment"
+"Settlement failed after X attempts"
+"Published PaymentFailedEvent"
+----
+
+=== Failure Reasons Simulated
+
+* "Insufficient funds in account"
+* "Invalid card details"  
+* "Payment provider network error"
+* "Transaction declined by risk assessment"
+
+=== Production Considerations
+
+* Always disable test mode in production
+* Monitor PaymentFailedEvent rates
+* Set up alerts for high failure rates
+* Implement manual review workflows
 
 
